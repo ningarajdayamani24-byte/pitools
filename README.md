@@ -1,2 +1,780 @@
 # pitools
 physcise tools
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Physics Simulation Lab – Projectile Motion</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+      background: radial-gradient(circle at top, #111827, #020617);
+      color: #e5e7eb;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      padding: 1rem 2rem;
+      border-bottom: 1px solid #1f2937;
+      background: rgba(3, 7, 18, 0.9);
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    header h1 {
+      font-size: 1.2rem;
+      margin: 0;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+
+    header span {
+      font-size: 0.75rem;
+      color: #9ca3af;
+    }
+
+    main {
+      padding: 1.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .panel {
+      background: rgba(15, 23, 42, 0.95);
+      border-radius: 1rem;
+      border: 1px solid #1f2937;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+      padding: 1.25rem 1.5rem;
+    }
+
+    .panel.controls {
+      flex: 1 1 260px;
+      max-width: 360px;
+    }
+
+    .panel.sim {
+      flex: 2 1 420px;
+      min-width: 320px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    h2 {
+      margin: 0 0 0.5rem;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    p.description {
+      margin: 0 0 0.75rem;
+      font-size: 0.8rem;
+      color: #9ca3af;
+      line-height: 1.4;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-top: 0.5rem;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      font-size: 0.8rem;
+    }
+
+    .field-row {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    label {
+      color: #d1d5db;
+      font-weight: 500;
+      font-size: 0.8rem;
+    }
+
+    input[type="number"] {
+      padding: 0.4rem 0.5rem;
+      border-radius: 0.5rem;
+      border: 1px solid #374151;
+      background: #020617;
+      color: #e5e7eb;
+      font-size: 0.85rem;
+      width: 100%;
+    }
+
+    input[type="number"]:focus {
+      outline: 2px solid #2563eb;
+      outline-offset: 1px;
+      border-color: #2563eb;
+    }
+
+    .unit {
+      font-size: 0.7rem;
+      color: #9ca3af;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 0.4rem 0.9rem;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      transition: transform 0.08s ease, box-shadow 0.08s ease,
+        background 0.12s ease;
+      user-select: none;
+    }
+
+    button.primary {
+      background: linear-gradient(135deg, #2563eb, #22c55e);
+      color: white;
+      box-shadow: 0 8px 18px rgba(37, 99, 235, 0.4);
+    }
+
+    button.secondary {
+      background: rgba(15, 23, 42, 0.95);
+      color: #e5e7eb;
+      border: 1px solid #374151;
+    }
+
+    button:active {
+      transform: translateY(1px) scale(0.99);
+      box-shadow: none;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: default;
+      box-shadow: none;
+    }
+
+    .btn-icon {
+      font-size: 0.9rem;
+    }
+
+    canvas {
+      border-radius: 0.75rem;
+      border: 1px solid #1f2937;
+      background: radial-gradient(circle at top, #020617, #020617);
+      width: 100%;
+      max-width: 100%;
+    }
+
+    .sim-info {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      font-size: 0.8rem;
+      color: #9ca3af;
+    }
+
+    .chip {
+      padding: 0.25rem 0.7rem;
+      border-radius: 999px;
+      border: 1px solid #374151;
+      background: rgba(15, 23, 42, 0.8);
+      display: inline-flex;
+      align-items: baseline;
+      gap: 0.25rem;
+    }
+
+    .chip span.value {
+      color: #e5e7eb;
+      font-weight: 500;
+    }
+
+    .error {
+      margin-top: 0.4rem;
+      font-size: 0.75rem;
+      color: #f97373;
+      min-height: 1em;
+    }
+
+    footer {
+      padding: 0.75rem 1.5rem 1.5rem;
+      text-align: center;
+      font-size: 0.75rem;
+      color: #6b7280;
+    }
+
+    footer code {
+      font-size: 0.75rem;
+      background: #020617;
+      padding: 0.1rem 0.35rem;
+      border-radius: 0.3rem;
+      border: 1px solid #111827;
+    }
+
+    @media (max-width: 720px) {
+      header {
+        padding: 0.8rem 1.1rem;
+      }
+      main {
+        padding: 1rem;
+      }
+      .panel.controls {
+        max-width: none;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div>
+      <h1>Physics Simulation Lab</h1>
+      <span>Projectile motion • enter values → see trajectory</span>
+    </div>
+  </header>
+
+  <main>
+    <!-- Controls -->
+    <section class="panel controls">
+      <h2>Projectile Motion</h2>
+      <p class="description">
+        Motion of a particle launched with speed
+        <em>u</em> at angle <em>θ</em> in a uniform gravitational field <em>g</em>.
+        Air resistance ignored.
+      </p>
+
+      <form id="projectile-form">
+        <div class="field">
+          <label for="u0">
+            Initial speed <span class="unit">(m/s)</span>
+          </label>
+          <input id="u0" type="number" step="0.1" min="0.1" value="20" required />
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="theta">
+              Launch angle <span class="unit">(degrees)</span>
+            </label>
+            <input id="theta" type="number" step="1" value="45" required />
+          </div>
+          <div class="field">
+            <label for="g">
+              g <span class="unit">(m/s²)</span>
+            </label>
+            <input id="g" type="number" step="0.1" min="0.1" value="9.8" required />
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="dt">
+              Time scale <span class="unit">(1 = real time)</span>
+            </label>
+            <input id="dt" type="number" step="0.1" min="0.1" value="1.0" required />
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button type="submit" class="primary" id="start-btn">
+            <span class="btn-icon">▶</span>
+            <span>Start Simulation</span>
+          </button>
+          <button type="button" class="secondary" id="pause-btn">
+            ⏸ Pause
+          </button>
+          <button type="button" class="secondary" id="reset-btn">
+            ⟲ Reset
+          </button>
+        </div>
+
+        <div class="error" id="error-msg"></div>
+      </form>
+
+      <div style="margin-top: 0.8rem;">
+        <div class="sim-info">
+          <div class="chip">
+            Range R ≈ <span class="value" id="range-val">–</span> m
+          </div>
+          <div class="chip">
+            Max height H
+            <span class="value" id="height-val">–</span> m
+          </div>
+          <div class="chip">
+            Flight time T
+            <span class="value" id="time-val">–</span> s
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Simulation -->
+    <section class="panel sim">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2>Simulation View</h2>
+        <span style="font-size:0.75rem; color:#9ca3af;">
+          Axis: x (horizontal), y (vertical)
+        </span>
+      </div>
+      <canvas id="projectile-canvas" width="640" height="360"></canvas>
+      <p class="description">
+        The path is a parabola:
+        <code>y = x tanθ − (g x²) / (2 u² cos²θ)</code>,
+        derived from <code>x = u cosθ · t</code> and
+        <code>y = u sinθ · t − ½ g t²</code>.
+      </p>
+    </section>
+  </main>
+
+  <footer>
+    Built with plain <code>HTML + CSS + JS</code>. Extend this file to add more simulations
+    (SHM, pendulum, circular motion, etc.) using the same structure.
+  </footer>
+</div>
+
+<script>
+  (function () {
+    const form = document.getElementById("projectile-form");
+    const u0Input = document.getElementById("u0");
+    const thetaInput = document.getElementById("theta");
+    const gInput = document.getElementById("g");
+    const dtInput = document.getElementById("dt");
+    const errorMsg = document.getElementById("error-msg");
+
+    const startBtn = document.getElementById("start-btn");
+    const pauseBtn = document.getElementById("pause-btn");
+    const resetBtn = document.getElementById("reset-btn");
+
+    const rangeSpan = document.getElementById("range-val");
+    const heightSpan = document.getElementById("height-val");
+    const timeSpan = document.getElementById("time-val");
+
+    const canvas = document.getElementById("projectile-canvas");
+    const ctx = canvas.getContext("2d");
+
+    // Simulation state
+    let state = null; // will hold params + dynamic variables
+    let animationId = null;
+    let lastTimestamp = null;
+    let running = false;
+
+    function degToRad(deg) {
+      return (deg * Math.PI) / 180;
+    }
+
+    function formatNumber(x) {
+      if (!isFinite(x)) return "–";
+      if (Math.abs(x) >= 100) return x.toFixed(1);
+      if (Math.abs(x) >= 1) return x.toFixed(2);
+      return x.toExponential(2);
+    }
+
+    function computeAnalytics(u0, thetaRad, g) {
+      const sinTheta = Math.sin(thetaRad);
+      const cosTheta = Math.cos(thetaRad);
+      const sin2Theta = Math.sin(2 * thetaRad);
+
+      const timeOfFlight = (2 * u0 * sinTheta) / g;
+      const range = (u0 * u0 * sin2Theta) / g;
+      const hMax = (u0 * u0 * sinTheta * sinTheta) / (2 * g);
+
+      return { timeOfFlight, range, hMax };
+    }
+
+    function buildStateFromInputs() {
+      const u0 = parseFloat(u0Input.value);
+      const thetaDeg = parseFloat(thetaInput.value);
+      const g = parseFloat(gInput.value);
+      const timeScale = parseFloat(dtInput.value);
+
+      if (
+        !isFinite(u0) ||
+        !isFinite(thetaDeg) ||
+        !isFinite(g) ||
+        !isFinite(timeScale)
+      ) {
+        throw new Error("All values must be numbers.");
+      }
+      if (u0 <= 0) {
+        throw new Error("Initial speed must be > 0.");
+      }
+      if (g <= 0) {
+        throw new Error("g must be > 0.");
+      }
+      if (timeScale <= 0) {
+        throw new Error("Time scale must be > 0.");
+      }
+
+      const thetaRad = degToRad(thetaDeg);
+
+      const vx = u0 * Math.cos(thetaRad);
+      const vy = u0 * Math.sin(thetaRad);
+
+      const analytics = computeAnalytics(u0, thetaRad, g);
+
+      // Update displayed analytics
+      rangeSpan.textContent = formatNumber(analytics.range);
+      heightSpan.textContent = formatNumber(analytics.hMax);
+      timeSpan.textContent = formatNumber(analytics.timeOfFlight);
+
+      // World size for scaling
+      const margin = 10; // pixels
+      const worldX = Math.max(analytics.range, 1);
+      const worldY = Math.max(analytics.hMax, analytics.range / 4, 1);
+
+      // small padding so projectile stays in view
+      const worldXMax = worldX * 1.1;
+      const worldYMax = worldY * 1.3;
+
+      return {
+        u0,
+        thetaDeg,
+        thetaRad,
+        g,
+        timeScale,
+        vx,
+        vy,
+        analytics,
+        t: 0,
+        x: 0,
+        y: 0,
+        finished: false,
+        worldXMax,
+        worldYMax,
+        margin
+      };
+    }
+
+    function worldToScreen(x, y, st) {
+      const { margin, worldXMax, worldYMax } = st;
+      const w = canvas.width;
+      const h = canvas.height;
+      const usableW = w - 2 * margin;
+      const usableH = h - 2 * margin;
+
+      const sx = margin + (x / worldXMax) * usableW;
+      const sy = h - (margin + (y / worldYMax) * usableH);
+      return { x: sx, y: sy };
+    }
+
+    function drawAxes(st) {
+      const { margin, worldXMax, worldYMax } = st;
+      const w = canvas.width;
+      const h = canvas.height;
+
+      ctx.clearRect(0, 0, w, h);
+
+      // background grid-ish
+      ctx.save();
+      ctx.globalAlpha = 0.15;
+      ctx.lineWidth = 1;
+
+      const gridLines = 6;
+      for (let i = 0; i <= gridLines; i++) {
+        const x = margin + ((w - 2 * margin) * i) / gridLines;
+        const y = margin + ((h - 2 * margin) * i) / gridLines;
+
+        ctx.beginPath();
+        ctx.moveTo(x, margin);
+        ctx.lineTo(x, h - margin);
+        ctx.strokeStyle = "#111827";
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(margin, y);
+        ctx.lineTo(w - margin, y);
+        ctx.strokeStyle = "#111827";
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // ground line (y = 0)
+      const ground = worldToScreen(0, 0, st);
+      ctx.beginPath();
+      ctx.moveTo(margin, ground.y);
+      ctx.lineTo(w - margin, ground.y);
+      ctx.strokeStyle = "#4b5563";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // origin point
+      const origin = worldToScreen(0, 0, st);
+      ctx.beginPath();
+      ctx.arc(origin.x, origin.y, 4, 0, Math.PI * 2);
+      ctx.fillStyle = "#22c55e";
+      ctx.fill();
+
+      // axes arrows
+      ctx.beginPath();
+      ctx.moveTo(origin.x, origin.y);
+      ctx.lineTo(w - margin, origin.y);
+      ctx.strokeStyle = "#9ca3af";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(origin.x, origin.y);
+      ctx.lineTo(origin.x, margin);
+      ctx.stroke();
+
+      // x-axis arrow head
+      ctx.beginPath();
+      ctx.moveTo(w - margin, origin.y);
+      ctx.lineTo(w - margin - 6, origin.y - 4);
+      ctx.lineTo(w - margin - 6, origin.y + 4);
+      ctx.closePath();
+      ctx.fillStyle = "#9ca3af";
+      ctx.fill();
+
+      // y-axis arrow head
+      ctx.beginPath();
+      ctx.moveTo(origin.x, margin);
+      ctx.lineTo(origin.x - 4, margin + 6);
+      ctx.lineTo(origin.x + 4, margin + 6);
+      ctx.closePath();
+      ctx.fill();
+
+      // tiny labels
+      ctx.fillStyle = "#9ca3af";
+      ctx.font = "10px system-ui, sans-serif";
+      ctx.fillText("x", w - margin - 10, origin.y - 6);
+      ctx.fillText("y", origin.x + 6, margin + 10);
+    }
+
+    function drawProjectile(st) {
+      const origin = { x: 0, y: 0 };
+
+      // Draw trajectory curve up to current x
+      ctx.beginPath();
+      const steps = 80;
+      for (let i = 0; i <= steps; i++) {
+        const ratio = i / steps;
+        const x = st.analytics.range * ratio;
+        const t = x / (st.vx || 1e-8);
+        const y = st.vy * t - 0.5 * st.g * t * t;
+        if (y < 0) break;
+        const p = worldToScreen(x, y, st);
+        if (i === 0) ctx.moveTo(p.x, p.y);
+        else ctx.lineTo(p.x, p.y);
+      }
+      ctx.strokeStyle = "#2563eb";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Draw current projectile position
+      const pos = worldToScreen(st.x, st.y, st);
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, 5, 0, Math.PI * 2);
+      ctx.fillStyle = "#f97316";
+      ctx.fill();
+
+      // Velocity vector arrow (just direction)
+      const speed = Math.sqrt(st.vx * st.vx + (st.vy - st.g * st.t) ** 2);
+      if (speed > 0.001) {
+        const vx = st.vx;
+        const vyInstant = st.vy - st.g * st.t;
+        const norm = Math.sqrt(vx * vx + vyInstant * vyInstant) || 1;
+        const arrowScale = (st.worldXMax / 15); // arbitrary
+        const axWorld = st.x + (vx / norm) * arrowScale;
+        const ayWorld = st.y + (vyInstant / norm) * arrowScale;
+
+        const start = worldToScreen(st.x, st.y, st);
+        const end = worldToScreen(axWorld, ayWorld, st);
+
+        ctx.beginPath();
+        ctx.moveTo(start.x, start.y);
+        ctx.lineTo(end.x, end.y);
+        ctx.strokeStyle = "#22c55e";
+        ctx.lineWidth = 1.3;
+        ctx.stroke();
+
+        // arrow head
+        const angle = Math.atan2(end.y - start.y, end.x - start.x);
+        const headLen = 7;
+        ctx.beginPath();
+        ctx.moveTo(end.x, end.y);
+        ctx.lineTo(
+          end.x - headLen * Math.cos(angle - Math.PI / 6),
+          end.y - headLen * Math.sin(angle - Math.PI / 6)
+        );
+        ctx.lineTo(
+          end.x - headLen * Math.cos(angle + Math.PI / 6),
+          end.y - headLen * Math.sin(angle + Math.PI / 6)
+        );
+        ctx.closePath();
+        ctx.fillStyle = "#22c55e";
+        ctx.fill();
+      }
+    }
+
+    function render() {
+      if (!state) return;
+      drawAxes(state);
+      drawProjectile(state);
+    }
+
+    function step(timestamp) {
+      if (!running || !state) return;
+
+      if (lastTimestamp == null) {
+        lastTimestamp = timestamp;
+      }
+
+      const dtMs = timestamp - lastTimestamp;
+      lastTimestamp = timestamp;
+
+      const dt = (dtMs / 1000) * state.timeScale;
+
+      // Update time
+      state.t += dt;
+
+      // Update position using kinematics
+      state.x = state.vx * state.t;
+      state.y = state.vy * state.t - 0.5 * state.g * state.t * state.t;
+
+      if (state.y <= 0) {
+        // hit the ground
+        state.y = 0;
+        render();
+        running = false;
+        animationId = null;
+        startBtn.disabled = false;
+        pauseBtn.textContent = "⏸ Pause";
+        return;
+      }
+
+      render();
+
+      animationId = requestAnimationFrame(step);
+    }
+
+    function startSimulation() {
+      if (!state) {
+        try {
+          state = buildStateFromInputs();
+        } catch (err) {
+          errorMsg.textContent = err.message;
+          return;
+        }
+      }
+
+      errorMsg.textContent = "";
+      running = true;
+      startBtn.disabled = true;
+      pauseBtn.disabled = false;
+      pauseBtn.textContent = "⏸ Pause";
+      lastTimestamp = null;
+
+      if (animationId == null) {
+        animationId = requestAnimationFrame(step);
+      }
+    }
+
+    function pauseSimulation() {
+      if (!state) return;
+      if (!running) {
+        // resume
+        running = true;
+        pauseBtn.textContent = "⏸ Pause";
+        startBtn.disabled = true;
+        lastTimestamp = null;
+        animationId = requestAnimationFrame(step);
+      } else {
+        // pause
+        running = false;
+        pauseBtn.textContent = "▶ Resume";
+        startBtn.disabled = false;
+      }
+    }
+
+    function resetSimulation() {
+      running = false;
+      if (animationId != null) {
+        cancelAnimationFrame(animationId);
+        animationId = null;
+      }
+      state = null;
+      lastTimestamp = null;
+      startBtn.disabled = false;
+      pauseBtn.disabled = false;
+      pauseBtn.textContent = "⏸ Pause";
+      errorMsg.textContent = "";
+      rangeSpan.textContent = "–";
+      heightSpan.textContent = "–";
+      timeSpan.textContent = "–";
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // Show default axes
+      state = buildStateFromInputs();
+      render();
+      state = null;
+    }
+
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      if (animationId != null) {
+        cancelAnimationFrame(animationId);
+        animationId = null;
+      }
+      try {
+        state = buildStateFromInputs();
+      } catch (err) {
+        errorMsg.textContent = err.message;
+        return;
+      }
+      running = false;
+      lastTimestamp = null;
+      errorMsg.textContent = "";
+      render();
+      startSimulation();
+    });
+
+    pauseBtn.addEventListener("click", function () {
+      pauseSimulation();
+    });
+
+    resetBtn.addEventListener("click", function () {
+      resetSimulation();
+    });
+
+    // Initial render with default values
+    try {
+      state = buildStateFromInputs();
+      render();
+      state = null;
+    } catch (err) {
+      errorMsg.textContent = err.message;
+    }
+  })();
+</script>
+</body>
+</html>
