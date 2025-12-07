@@ -1,878 +1,647 @@
-
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Physics Lab – Extensible Simulations</title>
+<meta charset="utf-8" />
+<title>PITOOLS – Physics Lab</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+  :root{
+    --bg:#f6f7fb; --panel:#ffffff; --text:#0b1220; --muted:#475569; --accent:#0b72ff;
+    --border:#e6eefb; --accent-2:#10b981;
+  }
+  [data-theme="dark"]{
+    --bg:#020617; --panel:#0f1724; --text:#e6eef8; --muted:#9aa7b6; --accent:#2563eb;
+    --border:#102033; --accent-2:#22c55e;
+  }
 
-  <!-- 3D engine (Three.js) from CDN – needs internet once -->
-  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+  html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;}
+  body{background:var(--bg);color:var(--text);display:flex;justify-content:center;padding:20px 12px;box-sizing:border-box}
+  .app{width:100%;max-width:1200px;display:grid;grid-template-columns:360px 1fr;gap:18px;align-items:start}
 
-  <style>
-    :root {
-      --bg: #020617;
-      --bg-elevated: #0f172a;
-      --bg-input: #020617;
-      --border: #1f2937;
-      --text: #e5e7eb;
-      --muted: #9ca3af;
-      --accent: #2563eb;
-      --accent-soft: rgba(37, 99, 235, 0.1);
-    }
+  header{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px;border-radius:12px;background:var(--panel);border:1px solid var(--border)}
 
-    body[data-theme="light"] {
-      --bg: #f9fafb;
-      --bg-elevated: #ffffff;
-      --bg-input: #f3f4f6;
-      --border: #e5e7eb;
-      --text: #111827;
-      --muted: #6b7280;
-      --accent: #2563eb;
-      --accent-soft: rgba(37, 99, 235, 0.1);
-    }
+  .logo-area{display:flex;align-items:center;gap:12px}
+  .logo-holder{
+    padding:6px;
+    border-radius:14px;
+    background:var(--panel);
+    border:1px solid var(--border);
+  }
+  .app-logo{
+    width:56px;
+    height:56px;
+    border-radius:10px;
+    object-fit:contain;
+    background:transparent;
+    transition:opacity 0.2s ease;
+  }
+  .title{font-weight:700;font-size:1.05rem}
+  .subtitle{font-size:0.85rem;color:var(--muted);margin-top:2px}
 
-    * {
-      box-sizing: border-box;
-    }
+  .right-controls{display:flex;align-items:center;gap:10px}
+  .theme-toggle{
+    padding:8px 10px;
+    border-radius:999px;
+    border:1px solid var(--border);
+    cursor:pointer;
+    background:transparent;
+    color:var(--muted);
+    font-weight:600;
+  }
 
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-        sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
+  .panel{background:var(--panel);border:1px solid var(--border);padding:12px;border-radius:12px}
+  .controls{display:flex;flex-direction:column;gap:10px}
+  label{font-size:0.85rem;color:var(--muted);margin-bottom:6px;display:block}
+  input[type=number], select, input[type=range]{
+    width:100%;padding:8px;border-radius:8px;
+    border:1px solid var(--border);background:transparent;color:var(--text);
+    box-sizing:border-box;
+  }
+  .row{display:flex;gap:8px}
+  .row .field{flex:1;display:flex;flex-direction:column}
+  .btn-row{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}
+  button{
+    padding:8px 12px;border-radius:8px;border:none;
+    background:var(--accent);color:white;cursor:pointer;font-weight:600
+  }
+  button.secondary{background:transparent;border:1px solid var(--border);color:var(--text)}
+  button:disabled{opacity:0.45;cursor:not-allowed}
+  .small{font-size:0.85rem;color:var(--muted)}
 
-    .app {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0.75rem 1rem 1.5rem;
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
+  #canvas-wrap{position:relative}
+  canvas{
+    width:100%;height:360px;border-radius:10px;display:block;
+    background:linear-gradient(180deg,#071224,#02101a);
+    border:1px solid rgba(0,0,0,0.1)
+  }
+  .math{
+    font-family:ui-monospace,SFMono-Regular,monospace;
+    background:linear-gradient(180deg,rgba(0,0,0,0.02),transparent);
+    padding:10px;border-radius:8px;border:1px solid var(--border);
+    font-size:0.9rem;color:var(--muted)
+  }
+  .metrics{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .chip{
+    background:transparent;border:1px solid var(--border);
+    padding:6px 8px;border-radius:999px;
+    font-weight:700;color:var(--text);font-size:0.9rem
+  }
+  .graph{height:160px;border-radius:8px;border:1px solid var(--border);background:linear-gradient(180deg,#fff,transparent);overflow:hidden}
+  .note{font-size:0.82rem;color:var(--muted)}
 
-    header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-      padding: 0.75rem 1rem;
-      border-radius: 1rem;
-      border: 1px solid var(--border);
-      background: var(--bg-elevated);
-    }
+  .cat-menu{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+  .cat-btn{
+    padding:6px 10px;border-radius:999px;
+    border:1px solid var(--border);
+    background:transparent;
+    color:var(--muted);
+    font-size:0.8rem;
+    cursor:pointer
+  }
+  .cat-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
 
-    header h1 {
-      margin: 0;
-      font-size: 1.2rem;
-    }
-
-    header p {
-      margin: 0.25rem 0 0;
-      font-size: 0.75rem;
-      color: var(--muted);
-    }
-
-    .theme-toggle {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      font-size: 0.8rem;
-      padding: 0.2rem 0.5rem;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      background: var(--bg);
-      cursor: pointer;
-      user-select: none;
-    }
-
-    .theme-toggle span.mode {
-      padding: 0.1rem 0.5rem;
-      border-radius: 999px;
-      background: var(--accent-soft);
-      color: var(--accent);
-      font-weight: 500;
-    }
-
-    main {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
-      align-items: flex-start;
-    }
-
-    .panel {
-      border-radius: 1rem;
-      border: 1px solid var(--border);
-      background: var(--bg-elevated);
-      padding: 0.9rem 1rem;
-    }
-
-    .panel.controls {
-      flex: 1 1 260px;
-      max-width: 340px;
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-    }
-
-    .panel.view {
-      flex: 2 1 400px;
-      min-width: 320px;
-      display: flex;
-      flex-direction: column;
-      gap: 0.6rem;
-    }
-
-    h2 {
-      margin: 0;
-      font-size: 1rem;
-    }
-
-    .sub {
-      font-size: 0.8rem;
-      color: var(--muted);
-    }
-
-    .field {
-      display: flex;
-      flex-direction: column;
-      gap: 0.2rem;
-      font-size: 0.8rem;
-    }
-
-    label {
-      font-weight: 500;
-    }
-
-    input[type="number"],
-    select {
-      padding: 0.35rem 0.45rem;
-      border-radius: 0.5rem;
-      border: 1px solid var(--border);
-      background: var(--bg-input);
-      color: var(--text);
-      font-size: 0.85rem;
-    }
-
-    input[type="number"]:focus,
-    select:focus {
-      outline: 2px solid var(--accent);
-      outline-offset: 1px;
-      border-color: var(--accent);
-    }
-
-    .unit {
-      font-size: 0.7rem;
-      color: var(--muted);
-    }
-
-    .field-row {
-      display: flex;
-      gap: 0.75rem;
-    }
-
-    button {
-      border-radius: 999px;
-      border: none;
-      padding: 0.4rem 0.9rem;
-      font-size: 0.8rem;
-      font-weight: 500;
-      cursor: pointer;
-      background: var(--accent);
-      color: white;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.3rem;
-      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.3);
-    }
-
-    button.secondary {
-      background: transparent;
-      color: var(--text);
-      border: 1px solid var(--border);
-      box-shadow: none;
-    }
-
-    button:active {
-      transform: translateY(1px) scale(0.99);
-      box-shadow: none;
-    }
-
-    .btn-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      margin-top: 0.4rem;
-    }
-
-    canvas {
-      border-radius: 0.75rem;
-      border: 1px solid var(--border);
-      background: #020617;
-      width: 100%;
-      max-width: 100%;
-      display: block;
-    }
-
-    body[data-theme="light"] canvas {
-      background: #0b1120;
-    }
-
-    #sim-3d-container {
-      border-radius: 0.75rem;
-      border: 1px solid var(--border);
-      background: #020617;
-      width: 100%;
-      height: 360px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    #error-msg {
-      font-size: 0.75rem;
-      color: #f97373;
-      min-height: 1em;
-    }
-
-    .metrics {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      font-size: 0.78rem;
-    }
-
-    .chip {
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      padding: 0.2rem 0.6rem;
-      display: inline-flex;
-      gap: 0.2rem;
-      align-items: baseline;
-      background: var(--bg);
-    }
-
-    .chip span.value {
-      font-weight: 600;
-    }
-
-    footer {
-      margin-top: 0.5rem;
-      font-size: 0.75rem;
-      color: var(--muted);
-    }
-
-    footer code {
-      padding: 0.1rem 0.35rem;
-      border-radius: 0.3rem;
-      border: 1px solid var(--border);
-      background: var(--bg-input);
-      font-size: 0.75rem;
-    }
-
-    @media (max-width: 720px) {
-      header {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-      .panel.controls {
-        max-width: 100%;
-      }
-    }
-  </style>
+  @media (max-width:920px){.app{grid-template-columns:1fr;}}
+</style>
 </head>
-<body data-theme="dark">
-  <div class="app">
-    <header>
+<body data-theme="light">
+<div class="app">
+
+  <header>
+    <div class="logo-area">
+      <div class="logo-holder">
+        <!-- use your files: pitools-logo-light.png & pitools-logo-dark.png -->
+        <img id="app-logo" src="pitools-logo-light.png" alt="PITOOLS logo" class="app-logo">
+      </div>
       <div>
-        <h1>Physics Lab</h1>
-        <p>Modular simulations • 2D + 3D • theme toggle</p>
+        <div class="title">PITOOLS – Physics Lab</div>
+        <div class="subtitle">Mechanics now • Electromagnetism & Modern Physics coming soon</div>
       </div>
-      <div class="theme-toggle" id="theme-toggle">
-        <span>Theme</span>
-        <span class="mode" id="theme-label">Dark</span>
-      </div>
-    </header>
+    </div>
 
-    <main>
-      <!-- Controls panel -->
-      <section class="panel controls">
+    <div class="right-controls">
+      <button class="theme-toggle" id="themeBtn">Dark</button>
+    </div>
+  </header>
+
+  <!-- left: controls -->
+  <section class="panel controls">
+
+    <!-- physics category menu -->
+    <div>
+      <label>Physics branch</label>
+      <div class="cat-menu">
+        <button class="cat-btn active" data-cat="mechanics">Mechanics</button>
+        <button class="cat-btn" data-cat="em">Electromagnetism</button>
+        <button class="cat-btn" data-cat="modern">Modern Physics</button>
+      </div>
+      <div class="note">
+        Mechanics has the projectile simulation. Other branches are placeholders where you can plug more tools later.
+      </div>
+    </div>
+
+    <div id="controls-main" style="margin-top:10px">
+      <div>
+        <label>Simulation</label>
+        <select id="preset-select">
+          <option value="custom">Custom (blank)</option>
+          <option value="human-throw">Human Throw (preset)</option>
+          <option value="long-shot">Long shot (preset)</option>
+        </select>
+        <div class="note" style="margin-top:6px">Pick a preset to load realistic values, or set your own.</div>
+      </div>
+
+      <div class="row" style="margin-top:6px">
         <div class="field">
-          <label for="sim-select">Simulation</label>
-          <select id="sim-select">
-            <option value="projectile2d">Projectile Motion (2D)</option>
-            <option value="gravity3d">Gravity Ball (3D)</option>
-          </select>
-          <span class="sub" id="sim-description">
-            2D projectile under uniform gravity.
-          </span>
+          <label>Initial speed u (m/s)</label>
+          <input id="u" type="number" value="15" step="0.1" min="0.1">
         </div>
-
-        <!-- Dynamic controls area -->
-        <div id="controls-area">
-          <!-- Filled by JS per simulation -->
+        <div class="field">
+          <label>Angle θ (deg)</label>
+          <input id="theta" type="number" value="40" step="0.1" min="0" max="89.9">
         </div>
+      </div>
 
-        <div class="btn-row">
-          <button id="start-btn">
-            <span>▶</span>
-            <span>Start</span>
-          </button>
-          <button id="reset-btn" class="secondary">
-            ⟲ Reset
-          </button>
+      <div class="row">
+        <div class="field">
+          <label>Initial height h (m)</label>
+          <input id="h" type="number" value="1.6" step="0.01" min="0">
         </div>
-
-        <div id="error-msg"></div>
-
-        <div class="metrics" id="metrics-area">
-          <!-- Filled by JS -->
+        <div class="field">
+          <label>Gravity g (m/s²)</label>
+          <input id="g" type="number" value="9.8" step="0.01" min="0.1">
         </div>
-      </section>
+      </div>
 
-      <!-- View panel -->
-      <section class="panel view">
-        <div style="display:flex; justify-content:space-between; align-items:baseline;">
-          <div>
-            <h2 id="view-title">View</h2>
-            <div class="sub" id="view-sub">Canvas / 3D scene</div>
-          </div>
+      <div>
+        <label>Angle slider</label>
+        <input id="angle-range" type="range" min="0" max="89.9" step="0.1" value="40">
+        <div class="row" style="margin-top:6px">
+          <div class="small">Time scale</div>
+          <input id="time-scale" type="range" min="0.2" max="3" step="0.1" value="1">
         </div>
+      </div>
 
-        <canvas id="sim-2d-canvas" width="640" height="360"></canvas>
-        <div id="sim-3d-container" style="display:none;"></div>
+      <div class="btn-row">
+        <button id="startBtn">▶ Start</button>
+        <button id="pauseBtn" class="secondary">⏸ Pause</button>
+        <button id="resetBtn" class="secondary">⟲ Reset</button>
+        <button id="preset-human" class="secondary">Human Throw</button>
+      </div>
 
-        <p class="sub" id="sim-equation">
-          For projectile (2D): y = x tanθ − (g x²) / (2 u² cos²θ)
-        </p>
-      </section>
-    </main>
+      <div style="margin-top:10px">
+        <label>Display</label>
+        <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
+          <label class="small"><input id="show-trace" type="checkbox" checked> Trace</label>
+          <label class="small"><input id="show-vel" type="checkbox" checked> Velocity vector</label>
+          <label class="small"><input id="show-acc" type="checkbox" checked> Acceleration (g)</label>
+          <label class="small"><input id="show-analytic" type="checkbox"> Analytic curve</label>
+        </div>
+      </div>
 
-    <footer>
-      Structure is generic: add new simulations inside
-      <code>simulations</code> in the script. Each sim defines its own controls,
-      drawing, and update logic.
-    </footer>
-  </div>
+      <div style="margin-top:12px">
+        <div class="math" id="math-box"></div>
+        <div class="metrics" id="metrics"></div>
+      </div>
+    </div>
 
-  <script>
-    // ========= THEME TOGGLE =========
-    const themeToggle = document.getElementById("theme-toggle");
-    const themeLabel = document.getElementById("theme-label");
+    <div id="no-sim-message" class="note" style="display:none;margin-top:12px">
+      No simulations added for this branch yet. Later you can add electromagnetism or modern physics simulations here.
+    </div>
 
-    function setTheme(mode) {
-      document.body.setAttribute("data-theme", mode);
-      themeLabel.textContent = mode === "dark" ? "Dark" : "Light";
+  </section>
+
+  <!-- right: view -->
+  <section class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div>
+        <strong>Simulation View</strong>
+        <div class="note">Stick-figure thrower at origin (left). Units: meters (scaled).</div>
+      </div>
+      <div class="note">Angle vs Range (bottom)</div>
+    </div>
+
+    <div id="canvas-wrap">
+      <canvas id="sim-canvas" width="900" height="360"></canvas>
+    </div>
+
+    <div style="display:flex;gap:12px;margin-top:10px">
+      <div style="flex:1">
+        <div style="font-weight:700;margin-bottom:6px">Equations & derivation</div>
+        <div class="math" id="equations" style="max-height:200px;overflow:auto"></div>
+      </div>
+      <div style="width:320px">
+        <div style="font-weight:700;margin-bottom:6px">Angle vs Range</div>
+        <canvas id="angle-graph" width="320" height="160" class="graph"></canvas>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const fmt = v => (Number.isFinite(v) ? v.toFixed(3) : '–');
+
+  // theme + logo
+  const body = document.body;
+  const themeBtn = $('themeBtn');
+  const logo = $('app-logo');
+  const LOGO_LIGHT = "pitools-logo-light.png";
+  const LOGO_DARK  = "pitools-logo-dark.png";
+
+  function updateLogo(theme){
+    logo.style.opacity = "0";
+    setTimeout(()=>{
+      logo.src = theme === "dark" ? LOGO_DARK : LOGO_LIGHT;
+      logo.style.opacity = "1";
+    },120);
+  }
+
+  function setTheme(theme){
+    body.setAttribute("data-theme", theme);
+    themeBtn.textContent = theme === "dark" ? "Light" : "Dark";
+    updateLogo(theme);
+  }
+
+  setTheme("light");
+  themeBtn.addEventListener("click", ()=>{
+    const current = body.getAttribute("data-theme");
+    setTheme(current === "dark" ? "light" : "dark");
+  });
+
+  // category buttons
+  const catButtons = document.querySelectorAll(".cat-btn");
+  const controlsMain = $("controls-main");
+  const noSimMsg = $("no-sim-message");
+  let currentCategory = "mechanics";
+
+  function setCategory(cat){
+    currentCategory = cat;
+    catButtons.forEach(btn=>btn.classList.toggle("active", btn.dataset.cat===cat));
+    const hasSim = (cat === "mechanics");
+    controlsMain.style.display = hasSim ? "block" : "none";
+    noSimMsg.style.display = hasSim ? "none" : "block";
+    startBtn.disabled = !hasSim;
+    pauseBtn.disabled = !hasSim;
+    resetBtn.disabled = !hasSim;
+  }
+  catButtons.forEach(btn=>btn.addEventListener("click", ()=>setCategory(btn.dataset.cat)));
+
+  // inputs
+  const uIn = $("u"), thetaIn = $("theta"), hIn = $("h"), gIn = $("g");
+  const angleRange = $("angle-range"), timeScale = $("time-scale");
+  const startBtn = $("startBtn"), pauseBtn = $("pauseBtn"), resetBtn = $("resetBtn");
+  const presetSelect = $("preset-select"), presetHuman = $("preset-human");
+  const showTrace = $("show-trace"), showVel = $("show-vel"), showAcc = $("show-acc"), showAnalytic = $("show-analytic");
+
+  const mathBox = $("math-box"), metricsDiv = $("metrics"), equations = $("equations");
+  const canvas = $("sim-canvas"), ctx = canvas.getContext("2d");
+  const graph = $("angle-graph"), gctx = graph.getContext("2d");
+
+  // presets
+  function loadPreset(name){
+    if(name === "human-throw"){
+      uIn.value = 15; thetaIn.value = 40; hIn.value = 1.6; gIn.value = 9.8;
+    } else if(name === "long-shot"){
+      uIn.value = 30; thetaIn.value = 35; hIn.value = 1.2; gIn.value = 9.8;
     }
-
-    themeToggle.addEventListener("click", () => {
-      const current = document.body.getAttribute("data-theme");
-      const next = current === "dark" ? "light" : "dark";
-      setTheme(next);
-    });
-
-    // ========= DOM ELEMENTS =========
-    const simSelect = document.getElementById("sim-select");
-    const simDescription = document.getElementById("sim-description");
-    const controlsArea = document.getElementById("controls-area");
-    const metricsArea = document.getElementById("metrics-area");
-    const errorMsg = document.getElementById("error-msg");
-    const startBtn = document.getElementById("start-btn");
-    const resetBtn = document.getElementById("reset-btn");
-
-    const canvas2d = document.getElementById("sim-2d-canvas");
-    const ctx2d = canvas2d.getContext("2d");
-    const container3d = document.getElementById("sim-3d-container");
-
-    const viewTitle = document.getElementById("view-title");
-    const viewSub = document.getElementById("view-sub");
-    const simEquation = document.getElementById("sim-equation");
-
-    let currentSim = null;      // simulation object
-    let currentSimId = null;    // key in simulations
-    let controlsApi = null;     // from buildControls()
-
-    // ========= SIMULATION REGISTRY =========
-    const simulations = {
-      // -------------------- PROJECTILE 2D --------------------
-      projectile2d: (function () {
-        let animationId = null;
-
-        function drawScene(originX, originY, scale, x, y, vx, vyInst) {
-          const w = canvas2d.width;
-          const h = canvas2d.height;
-          ctx2d.clearRect(0, 0, w, h);
-
-          // ground
-          ctx2d.beginPath();
-          ctx2d.moveTo(20, originY);
-          ctx2d.lineTo(w - 20, originY);
-          ctx2d.strokeStyle = "#4b5563";
-          ctx2d.lineWidth = 1.5;
-          ctx2d.stroke();
-
-          // origin
-          ctx2d.beginPath();
-          ctx2d.arc(originX, originY, 4, 0, Math.PI * 2);
-          ctx2d.fillStyle = "#22c55e";
-          ctx2d.fill();
-
-          // projectile
-          const sx = originX + x * scale;
-          const sy = originY - y * scale;
-
-          ctx2d.beginPath();
-          ctx2d.arc(sx, sy, 5, 0, Math.PI * 2);
-          ctx2d.fillStyle = "#f97316";
-          ctx2d.fill();
-
-          // velocity vector arrow
-          const speed = Math.sqrt(vx * vx + vyInst * vyInst) || 1;
-          const factor = 0.3; // scale factor for arrow length
-          const vxPx = vx * scale * factor;
-          const vyPx = -vyInst * scale * factor; // minus because screen y is down
-
-          const ex = sx + vxPx;
-          const ey = sy + vyPx;
-
-          // line
-          ctx2d.beginPath();
-          ctx2d.moveTo(sx, sy);
-          ctx2d.lineTo(ex, ey);
-          ctx2d.strokeStyle = "#22c55e";
-          ctx2d.lineWidth = 1.5;
-          ctx2d.stroke();
-
-          // arrow head
-          const angle = Math.atan2(ey - sy, ex - sx);
-          const headLen = 8;
-          ctx2d.beginPath();
-          ctx2d.moveTo(ex, ey);
-          ctx2d.lineTo(
-            ex - headLen * Math.cos(angle - Math.PI / 6),
-            ey - headLen * Math.sin(angle - Math.PI / 6)
-          );
-          ctx2d.lineTo(
-            ex - headLen * Math.cos(angle + Math.PI / 6),
-            ey - headLen * Math.sin(angle + Math.PI / 6)
-          );
-          ctx2d.closePath();
-          ctx2d.fillStyle = "#22c55e";
-          ctx2d.fill();
-
-          // small text label near projectile
-          ctx2d.fillStyle = "#e5e7eb";
-          ctx2d.font = "10px system-ui";
-          ctx2d.fillText("v⃗", sx + 6, sy - 6);
-        }
-
-        function buildControls(container) {
-          container.innerHTML = "";
-
-          const wrap = document.createElement("div");
-          wrap.style.display = "flex";
-          wrap.style.flexDirection = "column";
-          wrap.style.gap = "0.5rem";
-
-          wrap.innerHTML = `
-            <div class="field">
-              <label for="p2d-u">Initial speed u <span class="unit">(m/s)</span></label>
-              <input id="p2d-u" type="number" value="20" step="0.1" />
-            </div>
-            <div class="field-row">
-              <div class="field">
-                <label for="p2d-angle">Angle θ <span class="unit">(deg)</span></label>
-                <input id="p2d-angle" type="number" value="45" step="1" />
-              </div>
-              <div class="field">
-                <label for="p2d-g">g <span class="unit">(m/s²)</span></label>
-                <input id="p2d-g" type="number" value="9.8" step="0.1" />
-              </div>
-            </div>
-          `;
-          container.appendChild(wrap);
-
-          return {
-            getParams() {
-              const u = parseFloat(document.getElementById("p2d-u").value);
-              const angleDeg = parseFloat(document.getElementById("p2d-angle").value);
-              const g = parseFloat(document.getElementById("p2d-g").value);
-
-              if (!isFinite(u) || !isFinite(angleDeg) || !isFinite(g)) {
-                throw new Error("Enter valid numbers.");
-              }
-              if (u <= 0 || g <= 0) {
-                throw new Error("u and g must be > 0.");
-              }
-
-              return { u, angleDeg, g };
-            }
-          };
-        }
-
-        function start(params) {
-          if (animationId !== null) cancelAnimationFrame(animationId);
-
-          const { u, angleDeg, g } = params;
-          const theta = (angleDeg * Math.PI) / 180;
-          const ux = u * Math.cos(theta);
-          const uy = u * Math.sin(theta);
-
-          const T = (2 * uy) / g;
-          const R = ux * T;
-          const H = (uy * uy) / (2 * g);
-
-          // metrics (static) + live vector place
-          metricsArea.innerHTML = `
-            <div class="chip">Range R: <span class="value">${R.toFixed(2)}</span> m</div>
-            <div class="chip">Max height H: <span class="value">${H.toFixed(2)}</span> m</div>
-            <div class="chip">Flight time T: <span class="value">${T.toFixed(2)}</span> s</div>
-            <div class="chip" id="p2d-vec-chip">
-              v: <span class="value" id="p2d-v">–</span> m/s,
-              vx: <span class="value" id="p2d-vx">–</span>,
-              vy: <span class="value" id="p2d-vy">–</span>
-            </div>
-          `;
-
-          const vSpan = document.getElementById("p2d-v");
-          const vxSpan = document.getElementById("p2d-vx");
-          const vySpan = document.getElementById("p2d-vy");
-
-          const margin = 20;
-          const originX = margin;
-          const originY = canvas2d.height - margin;
-
-          const maxX = Math.max(R, 1);
-          const maxY = Math.max(H, 1);
-          const scaleX =
-            (canvas2d.width - 2 * margin) / maxX;
-          const scaleY =
-            (canvas2d.height - 2 * margin) / maxY;
-          const scale = Math.min(scaleX, scaleY);
-
-          let t = 0;
-          const steps = 300;
-          const dt = T / steps;
-
-          function animate() {
-            t += dt;
-            const x = ux * t;
-            const y = uy * t - 0.5 * g * t * t;
-
-            const vyInst = uy - g * t; // vertical component at time t
-            const speed = Math.sqrt(ux * ux + vyInst * vyInst);
-
-            // update vector values in UI
-            if (vSpan && vxSpan && vySpan) {
-              vSpan.textContent = speed.toFixed(2);
-              vxSpan.textContent = ux.toFixed(2);
-              vySpan.textContent = vyInst.toFixed(2);
-            }
-
-            if (y < 0) {
-              // just before hitting ground, set y=0 and vyInst=0 for last frame
-              drawScene(originX, originY, scale, R, 0, ux, 0);
-              animationId = null;
-              return;
-            }
-
-            drawScene(originX, originY, scale, x, y, ux, vyInst);
-            animationId = requestAnimationFrame(animate);
-          }
-
-          // start
-          drawScene(originX, originY, scale, 0, 0, ux, uy);
-          animationId = requestAnimationFrame(animate);
-        }
-
-        function reset() {
-          if (animationId !== null) cancelAnimationFrame(animationId);
-          animationId = null;
-          metricsArea.innerHTML = "";
-          ctx2d.clearRect(0, 0, canvas2d.width, canvas2d.height);
-        }
-
-        function destroy() {
-          reset();
-        }
-
-        return {
-          id: "projectile2d",
-          name: "Projectile Motion (2D)",
-          dimension: "2d",
-          description: "Projectile launched with speed u at angle θ in uniform g. Shows live velocity vector.",
-          equationText:
-            "Projectile: x = u cosθ · t, y = u sinθ · t − ½ g t². Velocity: v⃗ = (u cosθ, u sinθ − g t).",
-          buildControls,
-          start,
-          reset,
-          destroy
-        };
-      })(),
-
-      // -------------------- GRAVITY BALL 3D --------------------
-      gravity3d: (function () {
-        let scene, camera, renderer, sphere, plane;
-        let animationId = null;
-        let vy = 0;
-        let g = 9.8;
-        let radius = 1;
-        let lastTime = null;
-
-        function setup3D() {
-          // cleanup old renderer if any
-          if (renderer) {
-            container3d.innerHTML = "";
-          }
-
-          const width = container3d.clientWidth;
-          const height = container3d.clientHeight;
-
-          scene = new THREE.Scene();
-          scene.background = new THREE.Color(0x020617);
-
-          camera = new THREE.PerspectiveCamera(
-            60,
-            width / height,
-            0.1,
-            100
-          );
-          camera.position.set(5, 4, 8);
-          camera.lookAt(0, 1, 0);
-
-          renderer = new THREE.WebGLRenderer({ antialias: true });
-          renderer.setSize(width, height);
-          container3d.appendChild(renderer.domElement);
-
-          // light
-          const light = new THREE.DirectionalLight(0xffffff, 1.0);
-          light.position.set(5, 10, 5);
-          scene.add(light);
-          scene.add(new THREE.AmbientLight(0xffffff, 0.3));
-
-          // plane (ground)
-          const planeGeo = new THREE.PlaneGeometry(20, 20);
-          const planeMat = new THREE.MeshStandardMaterial({
-            color: 0x111827,
-            roughness: 0.8
-          });
-          plane = new THREE.Mesh(planeGeo, planeMat);
-          plane.rotation.x = -Math.PI / 2;
-          plane.position.y = 0;
-          scene.add(plane);
-
-          // sphere
-          const sphereGeo = new THREE.SphereGeometry(radius, 32, 32);
-          const sphereMat = new THREE.MeshStandardMaterial({
-            color: 0xf97316,
-            roughness: 0.3
-          });
-          sphere = new THREE.Mesh(sphereGeo, sphereMat);
-          sphere.position.set(0, 5, 0);
-          scene.add(sphere);
-        }
-
-        function buildControls(container) {
-          container.innerHTML = "";
-
-          const wrap = document.createElement("div");
-          wrap.style.display = "flex";
-          wrap.style.flexDirection = "column";
-          wrap.style.gap = "0.5rem";
-
-          wrap.innerHTML = `
-            <div class="field">
-              <label for="g3d-g">g <span class="unit">(m/s²)</span></label>
-              <input id="g3d-g" type="number" value="9.8" step="0.1" />
-            </div>
-            <div class="field">
-              <label for="g3d-height">Initial height <span class="unit">(m)</span></label>
-              <input id="g3d-height" type="number" value="5" step="0.1" />
-            </div>
-          `;
-          container.appendChild(wrap);
-
-          return {
-            getParams() {
-              const gVal = parseFloat(
-                document.getElementById("g3d-g").value
-              );
-              const hVal = parseFloat(
-                document.getElementById("g3d-height").value
-              );
-              if (!isFinite(gVal) || !isFinite(hVal)) {
-                throw new Error("Enter valid numbers.");
-              }
-              if (gVal <= 0 || hVal <= 0) {
-                throw new Error("g and height must be > 0.");
-              }
-              return { g: gVal, h: hVal };
-            }
-          };
-        }
-
-        function start(params) {
-          if (!renderer) setup3D();
-          if (animationId !== null) cancelAnimationFrame(animationId);
-
-          g = params.g;
-          const h = params.h;
-          vy = 0;
-          radius = 1;
-
-          if (sphere) {
-            sphere.position.set(0, h, 0);
-          }
-
-          // metrics: ideal free-fall (no bounce)
-          const T = Math.sqrt((2 * h) / g);
-          const vImpact = g * T;
-
-          metricsArea.innerHTML = `
-            <div class="chip">Height h: <span class="value">${h.toFixed(
-              2
-            )}</span> m</div>
-            <div class="chip">Fall time (ideal): <span class="value">${T.toFixed(
-              2
-            )}</span> s</div>
-            <div class="chip">Impact speed: <span class="value">${vImpact.toFixed(
-              2
-            )}</span> m/s</div>
-          `;
-
-          lastTime = null;
-
-          function animate(timestamp) {
-            if (!lastTime) lastTime = timestamp;
-            const dt = (timestamp - lastTime) / 1000;
-            lastTime = timestamp;
-
-            // simple gravity + bounce
-            vy -= g * dt;
-            sphere.position.y += vy * dt;
-
-            if (sphere.position.y - radius < 0) {
-              sphere.position.y = radius;
-              vy = -vy * 0.7; // lose energy
-              if (Math.abs(vy) < 0.5) vy = 0; // almost rest
-            }
-
-            renderer.render(scene, camera);
-            animationId = requestAnimationFrame(animate);
-          }
-
-          animationId = requestAnimationFrame(animate);
-        }
-
-        function reset() {
-          metricsArea.innerHTML = "";
-          if (animationId !== null) cancelAnimationFrame(animationId);
-          animationId = null;
-          lastTime = null;
-          if (renderer && sphere) {
-            sphere.position.set(0, 5, 0);
-            renderer.render(scene, camera);
-          }
-        }
-
-        function destroy() {
-          if (animationId !== null) cancelAnimationFrame(animationId);
-          animationId = null;
-          if (renderer) {
-            renderer.dispose();
-            renderer = null;
-          }
-          if (scene) {
-            while (scene.children.length > 0) {
-              scene.remove(scene.children[0]);
-            }
-          }
-          container3d.innerHTML = "";
-        }
-
-        return {
-          id: "gravity3d",
-          name: "Gravity Ball (3D)",
-          dimension: "3d",
-          description:
-            "Ball falling under gravity, bouncing on a plane. Simple 3D gravity demo.",
-          equationText:
-            "Free fall (ideal): y(t) = h − ½ g t², v(t) = −g t. Here we add bounces with energy loss.",
-          buildControls,
-          start,
-          reset,
-          destroy
-        };
-      })()
+    angleRange.value = thetaIn.value;
+    computeAndDrawStatics();
+    drawAngleGraph();
+  }
+  presetSelect.addEventListener("change", ()=> loadPreset(presetSelect.value));
+  presetHuman.addEventListener("click", ()=> { loadPreset("human-throw"); presetSelect.value="human-throw"; });
+
+  angleRange.addEventListener("input", ()=>{ thetaIn.value = angleRange.value; computeAndDrawStatics(); drawAngleGraph(); });
+  thetaIn.addEventListener("change", ()=>{ angleRange.value = thetaIn.value; computeAndDrawStatics(); drawAngleGraph(); });
+
+  // physics helpers
+  const degToRad = d => d*Math.PI/180;
+  function flightTime(uy,g,h){
+    if(g<=0) return NaN;
+    const disc = uy*uy + 2*g*h;
+    if(disc < 0) return NaN;
+    return (uy + Math.sqrt(disc))/g;
+  }
+  function rangeFor(u,thetaDeg,g,h){
+    const th = degToRad(thetaDeg);
+    const ux = u*Math.cos(th), uy = u*Math.sin(th);
+    const T = flightTime(uy,g,h);
+    return ux*T;
+  }
+  function maxHeight(u,thetaDeg,g,h){
+    const th = degToRad(thetaDeg);
+    const uy = u*Math.sin(th);
+    return h + (uy*uy)/(2*g);
+  }
+
+  // static math + metrics
+  function computeAndDrawStatics(){
+    const u = parseFloat(uIn.value);
+    const theta = parseFloat(thetaIn.value);
+    const h = parseFloat(hIn.value);
+    const g = parseFloat(gIn.value);
+    if(!(isFinite(u) && isFinite(theta) && isFinite(h) && isFinite(g))) return;
+
+    const th = degToRad(theta);
+    const ux = u*Math.cos(th), uy = u*Math.sin(th);
+    const T = flightTime(uy,g,h);
+    const R = ux*T;
+    const H = maxHeight(u,theta,g,h);
+    const tp = uy/g;
+
+    mathBox.innerHTML = `
+      <div style="font-weight:700;margin-bottom:6px">Used formulas (h ≠ 0)</div>
+      <div class="small"><strong>Vertical:</strong> y(t) = h + (u sinθ) t − ½ g t²</div>
+      <div class="small">Solve y(t)=0 → ½ g t² − (u sinθ) t − h = 0 → positive root:</div>
+      <div class="small" style="margin-top:6px">
+        t_f = (u sinθ + √((u sinθ)² + 2 g h)) / g
+      </div>
+      <div class="small" style="margin-top:8px">
+        Range: R = (u cosθ) · t_f
+      </div>
+      <div style="margin-top:8px;font-size:0.92rem;color:var(--muted)">
+        Substituted:<br>
+        u = ${u} m/s, θ = ${theta}°, h = ${h} m, g = ${g} m/s²<br>
+        u sinθ = ${fmt(uy)} , u cosθ = ${fmt(ux)} , t_f = ${fmt(T)} s
+      </div>
+    `;
+
+    equations.innerHTML = `
+      <div style="font-weight:700">Analytic results</div>
+      <div class="small">Flight time (positive root): t_f = (u sinθ + √((u sinθ)² + 2 g h))/g = <strong>${fmt(T)} s</strong></div>
+      <div class="small">Range: R = u cosθ · t_f = <strong>${fmt(R)} m</strong></div>
+      <div class="small">Max height: H = h + (u sinθ)² / (2 g) = <strong>${fmt(H)} m</strong></div>
+      <div class="small">Time to peak: t_p = u sinθ / g = <strong>${fmt(tp)} s</strong></div>
+      <div class="small">Velocity components at t: v_x = u cosθ, v_y = u sinθ − g t</div>
+    `;
+
+    metricsDiv.innerHTML = "";
+    const chip = (label,val)=>{
+      const d = document.createElement("div");
+      d.className="chip";
+      d.textContent = `${label} ${val}`;
+      return d;
     };
+    metricsDiv.appendChild(chip("Range R:", fmt(R)+" m"));
+    metricsDiv.appendChild(chip("Max H:", fmt(H)+" m"));
+    metricsDiv.appendChild(chip("Flight T:", fmt(T)+" s"));
+    metricsDiv.appendChild(chip("u_x:", fmt(ux)+" m/s"));
+    metricsDiv.appendChild(chip("u_y:", fmt(uy)+" m/s"));
+  }
 
-    // ========= SIM SELECTION / LIFECYCLE =========
-    function switchSimulation(id) {
-      if (currentSim && currentSim.destroy) {
-        currentSim.destroy();
+  // angle vs range graph
+  function drawAngleGraph(){
+    const u = parseFloat(uIn.value), h = parseFloat(hIn.value), g = parseFloat(gIn.value);
+    const W = graph.width, H = graph.height;
+    gctx.clearRect(0,0,W,H);
+    gctx.fillStyle = getComputedStyle(document.body).getPropertyValue("--panel");
+    gctx.fillRect(0,0,W,H);
+
+    const samples = 180;
+    const Rs = [];
+    let maxR = 0;
+    for(let i=0;i<=samples;i++){
+      const th = i*(90/samples);
+      const r = rangeFor(u,th,g,h);
+      Rs.push(r);
+      if(isFinite(r) && r>maxR) maxR=r;
+    }
+    if(!isFinite(maxR) || maxR<=0) maxR = 1;
+
+    gctx.strokeStyle = "#9aa7b6"; gctx.lineWidth=1;
+    gctx.beginPath(); gctx.moveTo(40,10); gctx.lineTo(40,H-30); gctx.lineTo(W-8,H-30); gctx.stroke();
+    gctx.fillStyle = getComputedStyle(document.body).getPropertyValue("--muted"); gctx.font="10px sans-serif";
+    gctx.fillText("Angle (°)", W/2 - 20, H-8);
+    gctx.save(); gctx.translate(12,H/2+10); gctx.rotate(-Math.PI/2); gctx.fillText("Range (m)",0,0); gctx.restore();
+
+    gctx.beginPath();
+    for(let i=0;i<=samples;i++){
+      const x = 40 + ((W-60)*(i/samples));
+      const r = Rs[i] || 0;
+      const y = (H-30) - ((H-50)*(r/maxR));
+      if(i===0) gctx.moveTo(x,y); else gctx.lineTo(x,y);
+    }
+    gctx.strokeStyle = getComputedStyle(document.body).getPropertyValue("--accent");
+    gctx.lineWidth=2; gctx.stroke();
+
+    const angle = parseFloat(thetaIn.value);
+    const idx = Math.round((angle/90)*samples);
+    const rx = 40 + ((W-60)*(idx/samples));
+    const ry = (H-30) - ((H-50)*((Rs[idx]||0)/maxR));
+    gctx.fillStyle = getComputedStyle(document.body).getPropertyValue("--accent-2");
+    gctx.beginPath(); gctx.arc(rx,ry,4,0,Math.PI*2); gctx.fill();
+    gctx.fillStyle = getComputedStyle(document.body).getPropertyValue("--muted");
+    gctx.font="11px sans-serif";
+    gctx.fillText(`θ=${angle.toFixed(1)}°`, rx+6, ry-6);
+    gctx.fillText(`R=${fmt(Rs[idx])} m`, rx+6, ry+8);
+  }
+
+  // simulation drawing
+  const Wc = canvas.width, Hc = canvas.height;
+  const originX = 80;
+  const groundY = Hc - 44;
+  let raf=null, running=false, paused=false;
+  let sim = {u:parseFloat(uIn.value),theta:parseFloat(thetaIn.value),h:parseFloat(hIn.value),g:parseFloat(gIn.value),time:0,path:[]};
+
+  function computeScale(R,Hmax){
+    const worldX = Math.max(R*1.1,5);
+    const worldY = Math.max(Hmax*1.2,3);
+    const usableW = (Wc - originX - 40);
+    const usableH = (groundY - 20);
+    const scaleX = usableW/worldX;
+    const scaleY = usableH/worldY;
+    const scale = Math.min(scaleX,scaleY);
+    return {scale, offsetY:groundY, worldX, worldY};
+  }
+
+  function drawStickFigure(ctx,x,y){
+    ctx.save();
+    ctx.translate(x,y);
+    ctx.strokeStyle = getComputedStyle(document.body).getPropertyValue("--text");
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0,-26,8,0,Math.PI*2); ctx.fillStyle="#fff"; ctx.fill();
+    ctx.moveTo(0,-18); ctx.lineTo(0,0); ctx.stroke();
+    ctx.moveTo(0,-12); ctx.lineTo(-12,6); ctx.moveTo(0,-12); ctx.lineTo(12,6); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0,-12); ctx.lineTo(18,-28); ctx.lineWidth=3; ctx.stroke();
+    ctx.restore();
+  }
+
+  function renderFrame(params){
+    const {u,theta,h,g,scaleInfo,path,time,showVelVec,showAccVec,analytic} = params;
+    const th = degToRad(theta);
+    const ux = u*Math.cos(th), uy = u*Math.sin(th);
+    ctx.clearRect(0,0,Wc,Hc);
+
+    const grad = ctx.createLinearGradient(0,0,0,Hc);
+    grad.addColorStop(0, getComputedStyle(document.body).getPropertyValue("--panel"));
+    grad.addColorStop(1, getComputedStyle(document.body).getPropertyValue("--bg"));
+    ctx.fillStyle=grad; ctx.fillRect(0,0,Wc,Hc);
+
+    ctx.fillStyle="#18304a";
+    ctx.fillRect(0,groundY,Wc,Hc-groundY);
+    ctx.strokeStyle="rgba(255,255,255,0.06)"; ctx.lineWidth=1;
+    for(let i=0;i<10;i++){ ctx.beginPath(); ctx.moveTo(0,groundY+i*4); ctx.lineTo(Wc,groundY+i*4); ctx.stroke(); }
+
+    drawStickFigure(ctx,originX,groundY);
+
+    if(analytic){
+      ctx.beginPath(); let started=false;
+      for(let x=0;x<=scaleInfo.worldX;x+=0.5){
+        const tloc = x/ux;
+        const yloc = h + uy*tloc - 0.5*g*tloc*tloc;
+        const sx = originX + x*scaleInfo.scale;
+        const sy = scaleInfo.offsetY - yloc*scaleInfo.scale;
+        if(!started){ctx.moveTo(sx,sy);started=true;} else ctx.lineTo(sx,sy);
       }
-      errorMsg.textContent = "";
-      metricsArea.innerHTML = "";
-      controlsArea.innerHTML = "";
-
-      currentSimId = id;
-      currentSim = simulations[id];
-
-      if (!currentSim) {
-        console.error("Unknown simulation:", id);
-        return;
-      }
-
-      // UI texts
-      viewTitle.textContent = currentSim.name;
-      viewSub.textContent =
-        currentSim.dimension === "2d" ? "2D canvas" : "3D scene";
-      simDescription.textContent = currentSim.description;
-      simEquation.textContent = currentSim.equationText;
-
-      // show correct view
-      if (currentSim.dimension === "2d") {
-        canvas2d.style.display = "block";
-        container3d.style.display = "none";
-      } else {
-        canvas2d.style.display = "none";
-        container3d.style.display = "block";
-      }
-
-      // Build controls for this sim
-      controlsApi = currentSim.buildControls(controlsArea);
-
-      // Reset visuals
-      if (currentSim.reset) currentSim.reset();
+      ctx.strokeStyle="rgba(37,99,235,0.6)"; ctx.lineWidth=1.5; ctx.stroke();
     }
 
-    simSelect.addEventListener("change", (e) => {
-      switchSimulation(e.target.value);
-    });
+    if(path && path.length>0){
+      ctx.beginPath();
+      path.forEach((p,i)=>{
+        const sx = originX + p.x*scaleInfo.scale;
+        const sy = scaleInfo.offsetY - p.y*scaleInfo.scale;
+        if(i===0) ctx.moveTo(sx,sy); else ctx.lineTo(sx,sy);
+      });
+      ctx.strokeStyle="rgba(249,115,22,0.9)"; ctx.lineWidth=1.5; ctx.stroke();
+    }
 
-    startBtn.addEventListener("click", () => {
-      if (!currentSim || !controlsApi) return;
-      try {
-        const params = controlsApi.getParams();
-        errorMsg.textContent = "";
-        currentSim.start(params);
-      } catch (err) {
-        errorMsg.textContent = err.message || String(err);
-      }
-    });
+    const y = h + uy*time - 0.5*g*time*time;
+    const x = ux*time;
+    const sx = originX + x*scaleInfo.scale;
+    const sy = scaleInfo.offsetY - y*scaleInfo.scale;
 
-    resetBtn.addEventListener("click", () => {
-      if (currentSim && currentSim.reset) {
-        currentSim.reset();
-        errorMsg.textContent = "";
-      }
-    });
+    ctx.beginPath(); ctx.fillStyle="#f97316"; ctx.arc(sx,sy,7,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle="white"; ctx.font="11px sans-serif"; ctx.fillText("ball", sx+10, sy+4);
 
-    // initial setup
-    switchSimulation("projectile2d");
-  </script>
+    const vyInst = uy - g*time;
+    if(showVelVec){
+      const arrowScale=0.25;
+      const vxPx = ux*scaleInfo.scale*arrowScale;
+      const vyPx = -vyInst*scaleInfo.scale*arrowScale;
+      const ex = sx+vxPx, ey=sy+vyPx;
+      ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(ex,ey);
+      ctx.strokeStyle=getComputedStyle(document.body).getPropertyValue("--accent-2"); ctx.lineWidth=2; ctx.stroke();
+      const angle=Math.atan2(ey-sy,ex-sx);
+      const headLen=8;
+      ctx.beginPath();
+      ctx.moveTo(ex,ey);
+      ctx.lineTo(ex-headLen*Math.cos(angle-Math.PI/6), ey-headLen*Math.sin(angle-Math.PI/6));
+      ctx.lineTo(ex-headLen*Math.cos(angle+Math.PI/6), ey-headLen*Math.sin(angle+Math.PI/6));
+      ctx.closePath(); ctx.fillStyle=getComputedStyle(document.body).getPropertyValue("--accent-2"); ctx.fill();
+    }
+
+    if(showAccVec){
+      const ax=0, ay=-g;
+      const arrowScale=0.16;
+      const axPx=ax*scaleInfo.scale*arrowScale, ayPx=-ay*scaleInfo.scale*arrowScale;
+      const ex=sx+axPx, ey=sy+ayPx;
+      ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(ex,ey);
+      ctx.strokeStyle="rgba(37,99,235,0.9)"; ctx.lineWidth=1.6; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(ex,ey); ctx.lineTo(ex-6,ey-4); ctx.lineTo(ex+6,ey-4); ctx.closePath();
+      ctx.fillStyle="rgba(37,99,235,0.9)"; ctx.fill();
+    }
+
+    ctx.fillStyle=getComputedStyle(document.body).getPropertyValue("--panel");
+    ctx.fillRect(Wc-220,12,208,76);
+    ctx.strokeStyle=getComputedStyle(document.body).getPropertyValue("--border"); ctx.strokeRect(Wc-220,12,208,76);
+    ctx.fillStyle=getComputedStyle(document.body).getPropertyValue("--muted"); ctx.font="12px sans-serif";
+    ctx.fillText(`t = ${fmt(time)} s`, Wc-200,30);
+    ctx.fillStyle=getComputedStyle(document.body).getPropertyValue("--text"); ctx.font="13px monospace";
+    ctx.fillText(`v_x = ${fmt(ux)} m/s`, Wc-200,50);
+    ctx.fillText(`v_y = ${fmt(vyInst)} m/s`, Wc-200,66);
+    ctx.fillText(`|v| = ${fmt(Math.sqrt(ux*ux+vyInst*vyInst))} m/s`, Wc-200,84);
+
+    ctx.fillStyle=getComputedStyle(document.body).getPropertyValue("--muted");
+    ctx.font="10px sans-serif";
+    const step = Math.max(1, Math.round(scaleInfo.worldX/8));
+    for(let xm=0; xm<=scaleInfo.worldX; xm+=step){
+      const px = originX + xm*scaleInfo.scale;
+      ctx.beginPath(); ctx.moveTo(px,groundY); ctx.lineTo(px,groundY+6);
+      ctx.strokeStyle="rgba(255,255,255,0.06)"; ctx.stroke();
+      ctx.fillText(`${xm.toFixed(0)} m`, px-10, groundY+20);
+    }
+  }
+
+  function startSim(){
+    if(currentCategory!=="mechanics") return;
+    sim.u=parseFloat(uIn.value);
+    sim.theta=parseFloat(thetaIn.value);
+    sim.h=parseFloat(hIn.value);
+    sim.g=parseFloat(gIn.value);
+    sim.time=0; sim.path=[];
+    running=true; paused=false;
+    pauseBtn.textContent="⏸ Pause";
+    animate();
+  }
+  function pauseToggle(){
+    if(!running || currentCategory!=="mechanics") return;
+    paused=!paused;
+    pauseBtn.textContent = paused ? "▶ Resume" : "⏸ Pause";
+    if(!paused) animate(); else if(raf) cancelAnimationFrame(raf);
+  }
+  function resetSim(){
+    running=false; paused=false; if(raf) cancelAnimationFrame(raf);
+    sim.time=0; sim.path=[];
+    computeAndDrawStatics(); drawAngleGraph();
+    const initR = rangeFor(parseFloat(uIn.value),parseFloat(thetaIn.value),parseFloat(gIn.value),parseFloat(hIn.value));
+    const initH = maxHeight(parseFloat(uIn.value),parseFloat(thetaIn.value),parseFloat(gIn.value),parseFloat(hIn.value));
+    const scaleInfo = computeScale(initR,initH);
+    renderFrame({...sim,time:0,path:[],scaleInfo,showVelVec:true,showAccVec:true,analytic:true});
+  }
+
+  function animate(){
+    if(!running || currentCategory!=="mechanics") return;
+    if(paused) return;
+    const scaleInfo = (()=> {
+      const R = rangeFor(sim.u,sim.theta,sim.g,sim.h);
+      const H = maxHeight(sim.u,sim.theta,sim.g,sim.h);
+      return computeScale(R,H);
+    })();
+
+    const dt = 0.016*parseFloat(timeScale.value);
+    sim.time += dt;
+    const th = degToRad(sim.theta), ux=sim.u*Math.cos(th), uy=sim.u*Math.sin(th);
+    const y = sim.h + uy*sim.time - 0.5*sim.g*sim.time*sim.time;
+
+    if(showTrace.checked) sim.path.push({x:ux*sim.time,y:Math.max(0,y)});
+    renderFrame({...sim,scaleInfo,showVelVec:showVel.checked,showAccVec:showAcc.checked,analytic:showAnalytic.checked});
+
+    if(y<=0 && sim.time>0.01){
+      running=false;
+      const T = flightTime(uy,sim.g,sim.h);
+      sim.time=T;
+      if(showTrace.checked) sim.path.push({x:ux*T,y:0});
+      renderFrame({...sim,scaleInfo,showVelVec:showVel.checked,showAccVec:showAcc.checked,analytic:showAnalytic.checked});
+      computeAndDrawStatics(); drawAngleGraph();
+      return;
+    }
+    computeAndDrawStatics(); drawAngleGraph();
+    raf=requestAnimationFrame(animate);
+  }
+
+  startBtn.addEventListener("click", startSim);
+  pauseBtn.addEventListener("click", pauseToggle);
+  resetBtn.addEventListener("click", resetSim);
+
+  ["input","change"].forEach(ev=>{
+    [uIn,thetaIn,hIn,gIn].forEach(el=>el.addEventListener(ev,()=>{computeAndDrawStatics();drawAngleGraph();}));
+    showAnalytic.addEventListener("change",()=>{computeAndDrawStatics();drawAngleGraph();});
+  });
+
+  // init
+  setCategory("mechanics");
+  loadPreset("human-throw");
+  computeAndDrawStatics();
+  drawAngleGraph();
+  const initR = rangeFor(parseFloat(uIn.value),parseFloat(thetaIn.value),parseFloat(gIn.value),parseFloat(hIn.value));
+  const initH = maxHeight(parseFloat(uIn.value),parseFloat(thetaIn.value),parseFloat(gIn.value),parseFloat(hIn.value));
+  const scaleInfo = computeScale(initR,initH);
+  renderFrame({...sim,time:0,path:[],scaleInfo,showVelVec:true,showAccVec:true,analytic:true});
+})();
+</script>
 </body>
 </html>
