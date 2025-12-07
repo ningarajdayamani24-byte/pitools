@@ -393,27 +393,15 @@
 
     let currentSim = null;      // simulation object
     let currentSimId = null;    // key in simulations
+    let controlsApi = null;     // from buildControls()
 
     // ========= SIMULATION REGISTRY =========
-    // Simple pattern:
-    // {
-    //   id: "string",
-    //   name: "Display Name",
-    //   dimension: "2d" | "3d",
-    //   description: "...",
-    //   equationText: "...",
-    //   buildControls(containerElement) -> returns { getParams: fn }
-    //   init() -> called on load / reset
-    //   start(params) -> start animation
-    //   reset() -> reset state
-    //   destroy() -> cleanup (for 3D)
-    // }
-
     const simulations = {
+      // -------------------- PROJECTILE 2D --------------------
       projectile2d: (function () {
         let animationId = null;
 
-        function drawScene(originX, originY, scale, x, y, R, H) {
+        function drawScene(originX, originY, scale, x, y, vx, vyInst) {
           const w = canvas2d.width;
           const h = canvas2d.height;
           ctx2d.clearRect(0, 0, w, h);
@@ -440,6 +428,45 @@
           ctx2d.arc(sx, sy, 5, 0, Math.PI * 2);
           ctx2d.fillStyle = "#f97316";
           ctx2d.fill();
+
+          // velocity vector arrow
+          const speed = Math.sqrt(vx * vx + vyInst * vyInst) || 1;
+          const factor = 0.3; // scale factor for arrow length
+          const vxPx = vx * scale * factor;
+          const vyPx = -vyInst * scale * factor; // minus because screen y is down
+
+          const ex = sx + vxPx;
+          const ey = sy + vyPx;
+
+          // line
+          ctx2d.beginPath();
+          ctx2d.moveTo(sx, sy);
+          ctx2d.lineTo(ex, ey);
+          ctx2d.strokeStyle = "#22c55e";
+          ctx2d.lineWidth = 1.5;
+          ctx2d.stroke();
+
+          // arrow head
+          const angle = Math.atan2(ey - sy, ex - sx);
+          const headLen = 8;
+          ctx2d.beginPath();
+          ctx2d.moveTo(ex, ey);
+          ctx2d.lineTo(
+            ex - headLen * Math.cos(angle - Math.PI / 6),
+            ey - headLen * Math.sin(angle - Math.PI / 6)
+          );
+          ctx2d.lineTo(
+            ex - headLen * Math.cos(angle + Math.PI / 6),
+            ey - headLen * Math.sin(angle + Math.PI / 6)
+          );
+          ctx2d.closePath();
+          ctx2d.fillStyle = "#22c55e";
+          ctx2d.fill();
+
+          // small text label near projectile
+          ctx2d.fillStyle = "#e5e7eb";
+          ctx2d.font = "10px system-ui";
+          ctx2d.fillText("v⃗", sx + 6, sy - 6);
         }
 
         function buildControls(container) {
@@ -498,12 +525,21 @@
           const R = ux * T;
           const H = (uy * uy) / (2 * g);
 
-          // metrics
+          // metrics (static) + live vector place
           metricsArea.innerHTML = `
             <div class="chip">Range R: <span class="value">${R.toFixed(2)}</span> m</div>
             <div class="chip">Max height H: <span class="value">${H.toFixed(2)}</span> m</div>
             <div class="chip">Flight time T: <span class="value">${T.toFixed(2)}</span> s</div>
+            <div class="chip" id="p2d-vec-chip">
+              v: <span class="value" id="p2d-v">–</span> m/s,
+              vx: <span class="value" id="p2d-vx">–</span>,
+              vy: <span class="value" id="p2d-vy">–</span>
+            </div>
           `;
+
+          const vSpan = document.getElementById("p2d-v");
+          const vxSpan = document.getElementById("p2d-vx");
+          const vySpan = document.getElementById("p2d-vy");
 
           const margin = 20;
           const originX = margin;
@@ -518,24 +554,37 @@
           const scale = Math.min(scaleX, scaleY);
 
           let t = 0;
-          const dt = T / 300; // steps
+          const steps = 300;
+          const dt = T / steps;
 
           function animate() {
             t += dt;
             const x = ux * t;
             const y = uy * t - 0.5 * g * t * t;
 
+            const vyInst = uy - g * t; // vertical component at time t
+            const speed = Math.sqrt(ux * ux + vyInst * vyInst);
+
+            // update vector values in UI
+            if (vSpan && vxSpan && vySpan) {
+              vSpan.textContent = speed.toFixed(2);
+              vxSpan.textContent = ux.toFixed(2);
+              vySpan.textContent = vyInst.toFixed(2);
+            }
+
             if (y < 0) {
-              drawScene(originX, originY, scale, R, 0, R, H);
+              // just before hitting ground, set y=0 and vyInst=0 for last frame
+              drawScene(originX, originY, scale, R, 0, ux, 0);
               animationId = null;
               return;
             }
-            drawScene(originX, originY, scale, x, y, R, H);
+
+            drawScene(originX, originY, scale, x, y, ux, vyInst);
             animationId = requestAnimationFrame(animate);
           }
 
           // start
-          drawScene(originX, originY, scale, 0, 0, R, H);
+          drawScene(originX, originY, scale, 0, 0, ux, uy);
           animationId = requestAnimationFrame(animate);
         }
 
@@ -554,9 +603,9 @@
           id: "projectile2d",
           name: "Projectile Motion (2D)",
           dimension: "2d",
-          description: "Projectile launched with speed u at angle θ in uniform g.",
+          description: "Projectile launched with speed u at angle θ in uniform g. Shows live velocity vector.",
           equationText:
-            "For projectile (2D): y = x tanθ − (g x²) / (2 u² cos²θ)",
+            "Projectile: x = u cosθ · t, y = u sinθ · t − ½ g t². Velocity: v⃗ = (u cosθ, u sinθ − g t).",
           buildControls,
           start,
           reset,
@@ -564,6 +613,7 @@
         };
       })(),
 
+      // -------------------- GRAVITY BALL 3D --------------------
       gravity3d: (function () {
         let scene, camera, renderer, sphere, plane;
         let animationId = null;
@@ -760,8 +810,6 @@
     };
 
     // ========= SIM SELECTION / LIFECYCLE =========
-    let controlsApi = null; // from buildControls()
-
     function switchSimulation(id) {
       if (currentSim && currentSim.destroy) {
         currentSim.destroy();
