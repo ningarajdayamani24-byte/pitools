@@ -247,8 +247,8 @@
   const body = document.body;
   const themeBtn = $('themeBtn');
   const logo = $('app-logo');
-  const LOGO_LIGHT = "pitools-logo-light.png";
-  const LOGO_DARK  = "pitools-logo-dark.png";
+  const LOGO_LIGHT = "WhatsApp Image 2025-12-07 at 11.47.56 AM.jpeg";
+  const LOGO_DARK  = "image.jpg";
 
   function updateLogo(theme){
     logo.style.opacity = "0";
