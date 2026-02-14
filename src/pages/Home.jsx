@@ -57,7 +57,7 @@ export default function Home() {
 
 
         <p>
-          Seeing equations move is the shortest path to understanding.
+          Seeing equations move in the shortest path to understanding.
         </p>
 
         {/* Interactive Button */}
