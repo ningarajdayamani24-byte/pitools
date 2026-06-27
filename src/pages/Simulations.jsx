@@ -52,16 +52,40 @@ export default function Simulations() {
             </div>
           </div>
 
-          {/* WAVES CARD (NO VIDEO YET) */}
+          
           <div
             className="sim-card"
             onClick={() => navigate("/waves")}
           >
+            <video
+              src={`${base}simulations/waves-preview.mp4`}
+              autoPlay
+              loop
+              muted
+              playsInline
+            />
             <div className="sim-info">
               <h3>Waves</h3>
               <p>Oscillations, superposition, interference.</p>
             </div>
           </div>
+          <div
+            className="sim-card"
+            onClick={() => navigate("/light")}
+          >
+            <video
+              src={`${base}waves-bg.mp4`}
+              autoPlay
+              loop
+              muted
+              playsInline
+            />
+            <div className="sim-info">
+              <h3>light</h3>
+              <p>reflection ,refraction, interference.</p>
+            </div>
+          </div>
+
 
         </div>
       </section>
