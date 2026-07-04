@@ -58,6 +58,25 @@ export default function About() {
           This project started from a simple belief — physics should be seen,
           felt, and explored, not just solved on paper.
         </p>
+        <p
+          style={{
+            ...styles.reason,
+            opacity: show ? 1 : 0,
+            transform: show ? "translateY(0)" : "translateY(10px)",
+          }}
+        >
+          "The road was never clear, the resources were never enough, and the timing was rarely perfect—but  kept walking anyway."
+        </p>
+        <p
+          style={{
+            ...styles.reason,
+            opacity: show ? 1 : 0,
+            transform: show ? "translateY(0)" : "translateY(10px)",
+          }}
+        >
+         ~
+         NINGARAJ DAYAMANI
+        </p>
       </section>
     </>
   );
