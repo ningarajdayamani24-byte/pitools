@@ -77,6 +77,17 @@ export default function About() {
          ~
          NINGARAJ DAYAMANI
         </p>
+         <p
+          style={{
+            ...styles.reason,
+            opacity: show ? 1 : 0,
+            transform: show ? "translateY(0)" : "translateY(10px)",
+          }}
+        >
+         "
+         ningarajdayamani24@gmail.com
+         "
+        </p>
       </section>
     </>
   );

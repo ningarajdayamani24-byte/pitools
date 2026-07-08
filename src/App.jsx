@@ -73,7 +73,9 @@ import WaveInterference from "./pages/waves/WaveInterference";
 import SurfaceWaves from "./pages/waves/SurfaceWaves";
 import ChladniFigures from "./pages/waves/ChladniFigures";
 
-import light from "./pages/light";
+import LightMenu from "./pages/LightMenu";
+import LightMixing from "./pages/light/LightMixing";
+import Polarization from './pages/light/Polarization';
 export default function App() {
   return (
     <BrowserRouter>
@@ -152,7 +154,9 @@ export default function App() {
           <Route path="/waves/interference" element={<WaveInterference />} />
           <Route path="/waves/surface" element={<SurfaceWaves />} />
           <Route path="/waves/chladni" element={<ChladniFigures />} />
-          <Route path="/light" element={<light />} />
+          <Route path="/light" element={<LightMenu />} /> 
+          <Route path="/light/mixing" element={<LightMixing />} />
+          <Route path="/light/polarization" element={<Polarization />} />
         </Route>
 
       </Routes>
